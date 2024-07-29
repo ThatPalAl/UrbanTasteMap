@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Task Status</title>
+</head>
+<body>
+    <h1>Task Status</h1>
+    <p>Status: {{ response.status }}</p>
+    {% if response.result %}
+        <h2>Results</h2>
+        <p>Selected City: {{ response.result.selected_city }}</p>
+        <img src="{{ response.result.map_path }}" alt="Map">
+        <img src="{{ response.result.heatmap_path }}" alt="Heatmap">
+        <img src="{{ response.result.density_plot_path }}" alt="Density Plot">
+    {% endif %}
+    <a href="{{ url_for('index') }}">Back to Home</a>
+</body>
+</html>

@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Urban Taste Map</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <div class="card p-4">
+            <h1 class="text-center" id="cityTitle">Urban Taste Map</h1>
+            <form id="cityForm" method="POST">
+                <div class="form-group">
+                    <label for="city" class="form-label">City:</label>
+                    <input type="text" id="city" name="city" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="place_type" class="form-label">Place Type:</label>
+                    <select id="place_type" name="place_type" class="form-control" required>
+                        <option value="restaurant">Restaurant</option>
+                        <option value="bakery">Bakery</option>
+                        <option value="cafe">Cafe</option>
+                    </select>
+                </div>
+                <div class="text-center">
+                    <button type="submit" class="btn btn-primary btn-lg">Show Map</button>
+                </div>
+            </form>
+
+            <div id="results" class="d-none">
+                <h2 class="text-center mt-4">Map</h2>
+                <div class="text-center" id="map"></div>
+
+                <h2 class="text-center mt-4">Heatmap</h2>
+                <div class="text-center" id="heatmap"></div>
+                
+                <h2 class="text-center mt-4">Ratings Distribution</h2>
+                <div class="text-center" id="ratingsDistribution"></div>
+                
+                <h2 class="text-center mt-4">Top Places</h2>
+                <div class="text-center">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Rating</th>
+                                <th>Reviews</th>
+                            </tr>
+                        </thead>
+                        <tbody id="topPlacesList"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            $('#cityForm').on('submit', function(event) {
+                event.preventDefault();
+                $.ajax({
+                    type: 'POST',
+                    url: '/',
+                    data: $(this).serialize(),
+                    success: function(response) {
+                        if (response.state === 'PENDING') {
+                            checkStatus(response.task_id);
+                        } else {
+                            alert(response.message || 'Unexpected error occurred');
+                        }
+                    },
+                    error: function(jqXHR, textStatus, errorThrown) {
+                        alert('An error occurred: ' + textStatus + ' - ' + errorThrown);
+                    }
+                });
+            });
+        });
+
+        function checkStatus(task_id) {
+            $.ajax({
+                url: '/status/' + task_id,
+                success: function(response) {
+                    if (response.state === 'PENDING') {
+                        setTimeout(function() {
+                            checkStatus(task_id);
+                        }, 2000);
+                    } else if (response.state === 'SUCCESS') {
+                        $('#cityTitle').text(response.result.city);
+                        $('#map').html('<iframe src="' + response.result.map_path + '" width="100%" height="600" style="border:none; border-radius: 15px;"></iframe>');
+                        $('#heatmap').html('<iframe src="' + response.result.heatmap_path + '" width="100%" height="600" style="border:none; border-radius: 15px;"></iframe>');
+                        $('#ratingsDistribution').html('<img src="' + response.result.ratings_distribution_path + '" alt="Ratings Distribution Chart" class="img-fluid" style="border-radius: 15px;">');
+                        var places = response.result.top_places;
+                        if (places && places.length > 0) {
+                            $('#topPlacesList').empty();
+                            places.forEach(function(place) {
+                                $('#topPlacesList').append('<tr><td>' + place.name + '</td><td>' + place.rating + '</td><td>' + place.user_ratings_total + '</td></tr>');
+                            });
+                            $('#topPlaces').removeClass('d-none');
+                        }
+                        $('#results').removeClass('d-none');
+                    } else if (response.state === 'FAILURE') {
+                        alert('An error occurred: ' + response.status);
+                    }
+                },
+                error: function(jqXHR, textStatus, errorThrown) {
+                    alert('An error occurred while checking the task status: ' + textStatus + ' - ' + errorThrown);
+                }
+            });
+        }
+    </script>
+</body>
+</html>
